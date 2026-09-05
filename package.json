@@ -1,0 +1,12 @@
+{
+    "name": "laravel-turnstile-assets",
+    "private": true,
+    "description": "Minifier voor de meegeleverde dist-bestanden.",
+    "scripts": {
+        "build": "node build.mjs"
+    },
+    "devDependencies": {
+        "clean-css": "^5.3.3",
+        "terser": "^5.36.0"
+    }
+}

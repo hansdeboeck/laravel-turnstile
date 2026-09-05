@@ -1,0 +1,50 @@
+/**
+ * Stijlen voor het vlak waarin een Turnstile-uitdaging naar voren komt.
+ *
+ * Bewust hoogte 0 en geen display:none: een widget dat rendert in een verborgen
+ * container blijft leeg. De JavaScript wisselt het attribuut (en zet inert), dus
+ * geen samengestelde klassen.
+ *
+ * Kleuren en maten lopen via custom properties, zodat een applicatie ze met haar
+ * eigen ontwerptokens kan invullen zonder deze regels te overschrijven:
+ *
+ *   :root {
+ *       --turnstile-stage-bg: var(--color-surface);
+ *       --turnstile-overlay-bg: rgb(0 0 0 / 0.6);
+ *   }
+ */
+
+[data-turnstile-stage] {
+    height: 0;
+    overflow: hidden;
+}
+
+[data-turnstile-stage='challenge'] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    inset: 0;
+    height: auto;
+    overflow: auto;
+    background: var(--turnstile-stage-bg, #fff);
+}
+
+/*
+ * Zonder een positioned ouder meet het vlak zich aan de viewport in plaats van
+ * aan de dialoog eromheen. Zet data-turnstile-fixed op pagina's waar zo'n ouder
+ * ontbreekt.
+ */
+[data-turnstile-stage='challenge'][data-turnstile-fixed] {
+    position: fixed;
+    z-index: var(--turnstile-stage-z, 50);
+    padding: var(--turnstile-stage-padding, 1.5rem);
+    background: var(--turnstile-overlay-bg, rgb(0 0 0 / 0.6));
+}
+
+/* De kale WebView-pagina (turnstile::bridge): geen eigen achtergrond, zodat de
+   app eromheen bepaalt hoe hij eruitziet. */
+body[data-turnstile-bridge] {
+    margin: 0;
+    background: transparent;
+}
