@@ -38,8 +38,8 @@ final class TurnstileAssets
     {
         $public = self::publicPath();
 
-        // In productie de .min-variant, maar alleen wanneer die er echt staat.
-        if ($public !== null && ! str_contains($path, '.min.')) {
+        // De .min-variant, maar alleen wanneer die er echt staat.
+        if ($public !== null && self::wantsMinified() && ! str_contains($path, '.min.')) {
             $minified = preg_replace('/\.(js|css)$/', '.min.$1', $path);
 
             if (is_string($minified) && is_file($public.'/'.$minified)) {
@@ -54,6 +54,22 @@ final class TurnstileAssets
         }
 
         return htmlspecialchars($url, ENT_QUOTES, 'UTF-8', false);
+    }
+
+    /**
+     * Standaard enkel in productie: in dev is de leesbare bron wat je in je
+     * debugger wil zien.
+     */
+    protected static function wantsMinified(): bool
+    {
+        $config = Container::getInstance()->make('config');
+        $keuze = $config->get('turnstile.assets.minify');
+
+        if ($keuze !== null) {
+            return (bool) $keuze;
+        }
+
+        return $config->get('app.env') === 'production';
     }
 
     protected static function publicPath(): ?string

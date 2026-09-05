@@ -300,6 +300,20 @@
 
             token: token,
 
+            /**
+             * Zet het widget klaar zonder al een token te vragen. Nodig in
+             * zichtbare modus: de bezoeker moet het vakje zien voor hij
+             * verstuurt. Roep dit aan zodra de container echt zichtbaar is; een
+             * widget dat rendert in een gesloten dialoog blijft leeg.
+             */
+            render: function () {
+                return ensureApi(settings.apiSrc).then(function () {
+                    render();
+
+                    return widgetId !== null;
+                });
+            },
+
             /** Onderscheidt een bewust afgebroken uitdaging van een echte storing. */
             isCancelled: function (error) {
                 return !!error && error.message === 'turnstile-cancelled';

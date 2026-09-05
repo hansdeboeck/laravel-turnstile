@@ -14,14 +14,16 @@
     'fixed' => false,
     'for' => null,
     'labelledby' => null,
+    'dialog' => true,
 ])
 
 @if (\HansDeBoeck\Turnstile\Facades\Turnstile::siteKey())
+    {{-- Zet :dialog="false" wanneer het vlak zelf al binnen een <dialog> staat:
+         een geneste modal-rol maakt het voor een schermlezer alleen verwarrender. --}}
     <div data-turnstile-stage="idle"
         @if ($fixed) data-turnstile-fixed @endif
         @if ($for) data-turnstile-for="{{ $for }}" @endif
-        role="dialog"
-        aria-modal="true"
+        @if ($dialog) role="dialog" aria-modal="true" @endif
         @if ($labelledby) aria-labelledby="{{ $labelledby }}" @endif
         {{ $attributes }}>
         {{ $slot }}

@@ -98,3 +98,20 @@ it('rendert de brugpagina voor een WebView', function (): void {
         // vragen die de applicatie net probeert af te bouwen.
         ->and($html)->not->toMatch('/<script(?![^>]*\ssrc=)[^>]*>/');
 });
+
+it('serveert de leesbare bron buiten productie', function (): void {
+    config()->set('app.env', 'local');
+
+    expect(Blade::render('<x-turnstile::scripts />'))
+        ->toContain('vendor/turnstile/turnstile.js')
+        ->not->toContain('turnstile.min.js');
+});
+
+it('kan de geminifieerde variant afdwingen', function (): void {
+    config()->set('turnstile.assets.minify', true);
+    config()->set('app.env', 'local');
+
+    // Zonder gepubliceerde bestanden valt hij terug op de bron; de schakelaar
+    // mag daar niet op stukgaan.
+    expect(Blade::render('<x-turnstile::scripts />'))->toContain('vendor/turnstile/turnstile');
+});

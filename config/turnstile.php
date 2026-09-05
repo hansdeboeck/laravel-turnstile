@@ -114,6 +114,11 @@ return [
     'assets' => [
         'path' => 'vendor/turnstile',
         'resolver' => null,
+
+        // Wanneer de meegeleverde .min-varianten geserveerd worden. Laat null
+        // voor "enkel in productie", zodat de leesbare bron blijft wat je in
+        // dev in je debugger ziet. true of false dwingt af.
+        'minify' => env('TURNSTILE_MINIFY_ASSETS'),
     ],
 
 ];

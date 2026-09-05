@@ -182,3 +182,16 @@ test('zichtbare modus gebruikt een al aangevinkt antwoord', async () => {
     assert.equal(widgets[0].opties.appearance, 'always');
     assert.equal(widgets[0].opties.execution, 'render');
 });
+
+test('render() zet een zichtbaar widget klaar zonder token te vragen', async () => {
+    const { window, widgets } = await bouw(STAGE);
+    const gate = window.turnstileGate.create({
+        stage: window.document.querySelector('[data-turnstile-stage]'),
+        visible: true,
+    });
+
+    assert.equal(gate.rendered, false);
+    assert.equal(await gate.render(), true);
+    assert.equal(gate.rendered, true);
+    assert.equal(widgets[0].uitgevoerd, 0, 'render() mag geen uitdaging starten');
+});
