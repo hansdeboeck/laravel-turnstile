@@ -39,6 +39,9 @@
     /** Alle gates, op naam, zodat een pagina-script er een kan terugvinden. */
     var gates = [];
 
+    /** Formulieren die via data-turnstile-form bediend worden. */
+    var gekoppeld = [];
+
     function element(value, wortel) {
         if (!value) return null;
         if (typeof value === 'string') return (wortel || document).querySelector(value);
@@ -349,17 +352,21 @@
     /**
      * Bedraadt elk formulier met data-turnstile-form, zodat pagina's zonder
      * eigen JavaScript toch een token meesturen.
+     *
+     * De listener hangt in de capture-fase aan document, niet aan het formulier:
+     * zo komt hij voor elke andere submit-handler aan de beurt en kan hij die
+     * met stopImmediatePropagation overslaan zolang er nog geen token is.
+     * Anders zou een pagina-script dat zelf op submit luistert twee keer vuren:
+     * een keer op de afgebroken poging en een keer op de echte.
      */
     function autowire(wortel) {
         var formulieren = (wortel || document).querySelectorAll('form[data-turnstile-form]');
 
         Array.prototype.forEach.call(formulieren, function (form) {
             if (form.dataset.turnstileBound === 'true') return;
+            if (!form.querySelector('[data-turnstile-field]')) return;
 
             var naam = form.getAttribute('data-turnstile-form') || '';
-            var veld = form.querySelector('[data-turnstile-field]');
-
-            if (!veld) return;
 
             var stage = naam
                 ? document.querySelector('[data-turnstile-stage][data-turnstile-for="' + naam + '"]')
@@ -370,50 +377,74 @@
 
             if (!container) return;
 
-            var gate = create({
-                name: naam,
-                stage: stage,
-                container: container,
-                visible: container.hasAttribute('data-turnstile-visible'),
-            });
-
             form.dataset.turnstileBound = 'true';
 
-            form.addEventListener('submit', function (event) {
-                if (form.dataset.turnstileReady === 'true') {
-                    form.dataset.turnstileReady = '';
-
-                    return;
-                }
-
-                event.preventDefault();
-
-                var submitter = event.submitter || null;
-                if (submitter) submitter.disabled = true;
-
-                gate.token().then(function (token) {
-                    veld.value = token;
-                    form.dataset.turnstileReady = 'true';
-
-                    if (submitter) submitter.disabled = false;
-
-                    // requestSubmit behoudt de submitter en de bestanden.
-                    if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit(submitter || undefined);
-                    } else {
-                        form.submit();
-                    }
-                }, function (error) {
-                    if (submitter) submitter.disabled = false;
-
-                    form.dispatchEvent(new CustomEvent('turnstile:failed', {
-                        bubbles: true,
-                        detail: { error: error, cancelled: gate.isCancelled(error) },
-                    }));
-                });
+            gekoppeld.push({
+                form: form,
+                gate: create({
+                    name: naam,
+                    stage: stage,
+                    container: container,
+                    visible: container.hasAttribute('data-turnstile-visible'),
+                }),
             });
         });
     }
+
+    function gekoppeldeGate(form) {
+        for (var i = 0; i < gekoppeld.length; i++) {
+            if (gekoppeld[i].form === form) return gekoppeld[i].gate;
+        }
+
+        return null;
+    }
+
+    function onSubmitCapture(event) {
+        var form = event.target;
+
+        if (!form || form.dataset === undefined || form.dataset.turnstileBound !== 'true') return;
+
+        // Tweede ronde: het token staat er al, dus alles mag zijn gang gaan.
+        if (form.dataset.turnstileReady === 'true') {
+            form.dataset.turnstileReady = '';
+
+            return;
+        }
+
+        var gate = gekoppeldeGate(form);
+        var veld = form.querySelector('[data-turnstile-field]');
+
+        if (!gate || !veld) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        var submitter = event.submitter || null;
+        if (submitter) submitter.disabled = true;
+
+        gate.token().then(function (token) {
+            veld.value = token;
+            form.dataset.turnstileReady = 'true';
+
+            if (submitter) submitter.disabled = false;
+
+            // requestSubmit behoudt de submitter en de gekozen bestanden.
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter || undefined);
+            } else {
+                form.submit();
+            }
+        }, function (error) {
+            if (submitter) submitter.disabled = false;
+
+            form.dispatchEvent(new CustomEvent('turnstile:failed', {
+                bubbles: true,
+                detail: { error: error, cancelled: gate.isCancelled(error) },
+            }));
+        });
+    }
+
+    document.addEventListener('submit', onSubmitCapture, true);
 
     window.turnstileGate = {
         create: create,
